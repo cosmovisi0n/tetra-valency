@@ -16,6 +16,7 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Rectangle;
 import com.td.game.TowerDefenseGame;
 import com.td.game.map.GameMap;
+import com.td.game.utils.Dreamlo;
 
 public class EndgameScreen implements Screen {
     public enum EndState {
@@ -47,6 +48,7 @@ public class EndgameScreen implements Screen {
     private String statusMessage = "";
     private boolean nicknamePromptOpen;
     private String nicknameDraft = "";
+    private boolean leaderboardSubmitted;
     private static final Color MENU_BASE = new Color(0.95f, 0.72f, 0.29f, 0.94f);
     private static final Color BUTTON_BG = new Color(0.56f, 0.43f, 0.33f, 1f);
 
@@ -185,6 +187,7 @@ public class EndgameScreen implements Screen {
             drawCentered(font, "Cancel", nicknameCancelBtn.x, nicknameCancelBtn.y + 34f, nicknameCancelBtn.width);
             batch.end();
         }
+
     }
 
     private void drawRoundRect(Rectangle r, float radius, Color c) {
@@ -195,6 +198,24 @@ public class EndgameScreen implements Screen {
     private void handleEnterLeaderboard() {
         nicknamePromptOpen = true;
         nicknameDraft = "";
+    }
+
+    private void submitLeaderboardEntry(String name) {
+        if (leaderboardSubmitted) {
+            return;
+        }
+        leaderboardSubmitted = true;
+        if (endState == EndState.WIN) {
+            Dreamlo.uploadTimeScore(name, timerSeconds, mapType);
+            game.setScreen(new WinLeaderboardScreen(game, mapType));
+            dispose();
+            return;
+        }
+        if (endState == EndState.ENDLESS_FINISH) {
+            Dreamlo.uploadWaveScore(name, lastWave, mapType);
+            game.setScreen(new EndlessLeaderboardScreen(game, mapType));
+            dispose();
+        }
     }
 
     private String formatTimer(float secondsTotal) {
@@ -283,8 +304,9 @@ public class EndgameScreen implements Screen {
             if (nicknamePromptOpen) {
                 if (keycode == Input.Keys.ENTER) {
                     String name = nicknameDraft.trim().isEmpty() ? "Player" : nicknameDraft.trim();
-                    statusMessage = "Nickname entered: " + name;
+                    statusMessage = "Score submitted: " + name;
                     nicknamePromptOpen = false;
+                    submitLeaderboardEntry(name);
                     return true;
                 }
                 if (keycode == Input.Keys.ESCAPE) {
@@ -325,8 +347,9 @@ public class EndgameScreen implements Screen {
             if (nicknamePromptOpen) {
                 if (nicknameOkBtn.contains(screenX, y)) {
                     String name = nicknameDraft.trim().isEmpty() ? "Player" : nicknameDraft.trim();
-                    statusMessage = "Nickname entered: " + name;
+                    statusMessage = "Score submitted: " + name;
                     nicknamePromptOpen = false;
+                    submitLeaderboardEntry(name);
                     return true;
                 }
                 if (nicknameCancelBtn.contains(screenX, y)) {

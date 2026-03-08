@@ -13,9 +13,10 @@ import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
-import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Rectangle;
 import com.td.game.TowerDefenseGame;
+import com.td.game.map.GameMap;
+import com.td.game.utils.Dreamlo;
 
 public class LeaderboardScreen implements Screen {
     private final TowerDefenseGame game;
@@ -36,17 +37,12 @@ public class LeaderboardScreen implements Screen {
     private Rectangle[] leftRows;
     private Rectangle[] rightRows;
 
-    private float[][] fastestByMap = {
-            { 0, 0, 0, 0, 0 }, 
-            { 0, 0, 0, 0, 0 } 
-    };
-    private int[][] highestByMap = {
-            { 0, 0, 0, 0, 0 }, 
-            { 0, 0, 0, 0, 0 } 
-    };
+    private final String[][] fastestRowsByMap = new String[2][5];
+    private final String[][] highestRowsByMap = new String[2][5];
     private int selectedMap = 0;
     private int selectedLeft = -1;
     private int selectedRight = -1;
+    private int pendingLoads;
 
     public LeaderboardScreen(TowerDefenseGame game) {
         this.game = game;
@@ -62,8 +58,75 @@ public class LeaderboardScreen implements Screen {
         if (bgTexture == null) {
             bgTexture = loadTextureSafe("ui/augment_screen_bg.png");
         }
+        initLoadingRows();
         recalcLayout();
+        loadLeaderboardData();
         Gdx.input.setInputProcessor(new InputHandler());
+    }
+
+    private void initLoadingRows() {
+        for (int map = 0; map < 2; map++) {
+            for (int i = 0; i < 5; i++) {
+                fastestRowsByMap[map][i] = i == 0 ? "Loading..." : "";
+                highestRowsByMap[map][i] = i == 0 ? "Loading..." : "";
+            }
+        }
+    }
+
+    private void loadLeaderboardData() {
+        pendingLoads = 4;
+
+        loadMapRows(0, GameMap.MapType.ELEMENTAL_CASTLE);
+        loadMapRows(1, GameMap.MapType.DESERT_OASIS);
+    }
+
+    private void loadMapRows(int mapIndex, GameMap.MapType mapType) {
+        Dreamlo.fetchScores(true, mapType, data -> Gdx.app.postRunnable(() -> {
+            fillFastestRowsForMap(mapIndex, data);
+            pendingLoads = Math.max(0, pendingLoads - 1);
+        }));
+        Dreamlo.fetchScores(false, mapType, data -> Gdx.app.postRunnable(() -> {
+            fillHighestRowsForMap(mapIndex, data);
+            pendingLoads = Math.max(0, pendingLoads - 1);
+        }));
+    }
+
+    private void fillFastestRowsForMap(int mapIndex, String[][] data) {
+        fillMapRowWithText(fastestRowsByMap, mapIndex, "No entries yet.");
+        if (data == null || data.length == 0) {
+            return;
+        }
+        for (int i = 0; i < 5 && i < data.length; i++) {
+            String name = data[i].length > 0 ? data[i][0] : "Player";
+            float timeSeconds = data[i].length > 1 ? parseFloatSafe(data[i][1]) : 0f;
+            String line = (i + 1) + ". " + name + " - " + formatTimer(timeSeconds);
+            fastestRowsByMap[mapIndex][i] = line;
+        }
+    }
+
+    private void fillHighestRowsForMap(int mapIndex, String[][] data) {
+        fillMapRowWithText(highestRowsByMap, mapIndex, "No entries yet.");
+        if (data == null || data.length == 0) {
+            return;
+        }
+        for (int i = 0; i < 5 && i < data.length; i++) {
+            String name = data[i].length > 0 ? data[i][0] : "Player";
+            int wave = data[i].length > 1 ? parseIntSafe(data[i][1]) : 0;
+            String line = (i + 1) + ". " + name + " - Wave " + wave;
+            highestRowsByMap[mapIndex][i] = line;
+        }
+    }
+
+    private void fillMapRowWithText(String[][] target, int mapIndex, String firstRowText) {
+        for (int i = 0; i < 5; i++) {
+            target[mapIndex][i] = i == 0 ? firstRowText : "";
+        }
+    }
+
+    private void fillEmptyRows(String[][] target, String firstRowText) {
+        for (int mapIndex = 0; mapIndex < 2; mapIndex++) {
+            fillMapRowWithText(target, mapIndex, firstRowText);
+        }
     }
 
     private void recalcLayout() {
@@ -144,10 +207,13 @@ public class LeaderboardScreen implements Screen {
         drawCentered("Fastest Completion", leftTitle.x, leftTitle.y + leftTitle.height * 0.67f, leftTitle.width);
         drawCentered("Highest Wave", rightTitle.x, rightTitle.y + rightTitle.height * 0.67f, rightTitle.width);
         for (int i = 0; i < 5; i++) {
-            drawCentered((i + 1) + "-Umit: " + String.format("%.1f", fastestByMap[selectedMap][i]), leftRows[i].x,
+            drawCentered(fastestRowsByMap[selectedMap][i], leftRows[i].x,
                     leftRows[i].y + leftRows[i].height * 0.68f, leftRows[i].width);
-            drawCentered((i + 1) + "-Umit: " + highestByMap[selectedMap][i], rightRows[i].x,
+            drawCentered(highestRowsByMap[selectedMap][i], rightRows[i].x,
                     rightRows[i].y + rightRows[i].height * 0.68f, rightRows[i].width);
+        }
+        if (pendingLoads > 0) {
+            drawCentered("Syncing leaderboard...", rootPanel.x, rootPanel.y + 26f, rootPanel.width);
         }
         drawCentered("Back", backBtn.x, backBtn.y + backBtn.height * 0.67f, backBtn.width);
         batch.end();
@@ -166,6 +232,29 @@ public class LeaderboardScreen implements Screen {
         glyph.setText(font, text);
         font.setColor(new Color(0.14f, 0.1f, 0.06f, 1f));
         font.draw(batch, text, x + (width - glyph.width) * 0.5f, baselineY);
+    }
+
+    private String formatTimer(float s) {
+        int minutes = (int) (s / 60f);
+        int seconds = (int) (s % 60f);
+        int centis = (int) ((s * 100f) % 100f);
+        return String.format("%02d:%02d.%02d", minutes, seconds, centis);
+    }
+
+    private int parseIntSafe(String value) {
+        try {
+            return Integer.parseInt(value);
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    private float parseFloatSafe(String value) {
+        try {
+            return Float.parseFloat(value);
+        } catch (Exception e) {
+            return 0f;
+        }
     }
 
     @Override
@@ -281,13 +370,11 @@ public class LeaderboardScreen implements Screen {
                 if (leftRows[i].contains(screenX, y)) {
                     game.audio.playClick();
                     selectedLeft = i;
-                    fastestByMap[selectedMap][i] = MathUtils.clamp(fastestByMap[selectedMap][i] + 0.5f, 0f, 99.9f);
                     return true;
                 }
                 if (rightRows[i].contains(screenX, y)) {
                     game.audio.playClick();
                     selectedRight = i;
-                    highestByMap[selectedMap][i] = MathUtils.clamp(highestByMap[selectedMap][i] + 1, 0, 999);
                     return true;
                 }
             }
@@ -295,4 +382,3 @@ public class LeaderboardScreen implements Screen {
         }
     }
 }
-
