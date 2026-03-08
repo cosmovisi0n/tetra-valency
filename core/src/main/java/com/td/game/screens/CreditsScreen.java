@@ -58,7 +58,6 @@ public class CreditsScreen implements Screen {
         rootPanel = new Rectangle(w * 0.22f, h * 0.08f, w * 0.56f, h * 0.84f);
         backBtn = new Rectangle(rootPanel.x + 22f, rootPanel.y + 22f, 140f, 48f);
 
-        
         float namesPanelY = rootPanel.y + rootPanel.height * 0.38f;
         float namesPanelH = rootPanel.height * 0.32f;
         namesPanel = new Rectangle(rootPanel.x + 40f, namesPanelY,
@@ -91,26 +90,20 @@ public class CreditsScreen implements Screen {
         }
 
         shapes.begin(ShapeRenderer.ShapeType.Filled);
-        drawRoundRect(rootPanel, 34f, new Color(0.89f, 0.67f, 0.26f, 0.96f));
-        
-        
+        drawRect(rootPanel, 34f, new Color(0.89f, 0.67f, 0.26f, 0.96f));
 
-        drawRoundRect(backBtn, backBtn.height * 0.5f, new Color(0.56f, 0.43f, 0.33f, 1f));
+        drawRect(backBtn, backBtn.height * 0.5f, new Color(0.56f, 0.43f, 0.33f, 1f));
 
-        
         float sepY = namesPanel.y + namesPanel.height + 6f;
         shapes.setColor(new Color(0.72f, 0.55f, 0.30f, 1f));
         shapes.rect(rootPanel.x + 60f, sepY, rootPanel.width - 120f, 2f);
 
-        
-        
         float sep2Y = nameRows[nameRows.length - 1].y - 8f;
         shapes.rect(rootPanel.x + 60f, sep2Y, rootPanel.width - 120f, 2f);
         shapes.end();
 
         batch.begin();
 
-        
         if (logoTexture != null) {
             float logoSize = rootPanel.height * 0.22f;
             float logoX = rootPanel.x + (rootPanel.width - logoSize) * 0.5f;
@@ -118,22 +111,19 @@ public class CreditsScreen implements Screen {
             batch.draw(logoTexture, logoX, logoY, logoSize, logoSize);
         }
 
-        
         font.setColor(new Color(0.40f, 0.28f, 0.14f, 1f));
         glyph.setText(font, "Team Members");
         font.draw(batch, "Team Members", rootPanel.x + (rootPanel.width - glyph.width) * 0.5f,
                 sepY + glyph.height + 6f);
 
-        
         font.setColor(new Color(0.14f, 0.1f, 0.06f, 1f));
         for (int i = 0; i < names.length; i++) {
             drawCentered(names[i], nameRows[i].x, nameRows[i].y + nameRows[i].height * 0.68f, nameRows[i].width);
         }
 
-        
         font.setColor(new Color(0.40f, 0.28f, 0.14f, 1f));
         glyph.setText(font, "Used Assets");
-        
+
         float usedAssetsY = sep2Y - glyph.height - 4f;
         font.draw(batch, "Used Assets", rootPanel.x + (rootPanel.width - glyph.width) * 0.5f,
                 usedAssetsY);
@@ -147,7 +137,7 @@ public class CreditsScreen implements Screen {
         batch.end();
     }
 
-    private void drawRoundRect(Rectangle r, float radius, Color c) {
+    private void drawRect(Rectangle r, float radius, Color c) {
         shapes.setColor(c);
         shapes.rect(r.x, r.y, r.width, r.height);
     }
@@ -209,6 +199,7 @@ public class CreditsScreen implements Screen {
             return new BitmapFont();
         FreeTypeFontGenerator gen = new FreeTypeFontGenerator(f);
         FreeTypeFontGenerator.FreeTypeFontParameter p = new FreeTypeFontGenerator.FreeTypeFontParameter();
+        p.characters = FreeTypeFontGenerator.DEFAULT_CHARS + "çğışöüÇĞİŞÖÜ";
         p.size = size;
         p.color = Color.WHITE;
         BitmapFont out = gen.generateFont(p);
@@ -264,4 +255,3 @@ public class CreditsScreen implements Screen {
         }
     }
 }
-

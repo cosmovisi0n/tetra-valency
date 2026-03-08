@@ -107,6 +107,7 @@ public class WinLeaderboardScreen implements Screen {
         }
         FreeTypeFontGenerator gen = new FreeTypeFontGenerator(file);
         FreeTypeFontGenerator.FreeTypeFontParameter p = new FreeTypeFontGenerator.FreeTypeFontParameter();
+        p.characters = FreeTypeFontGenerator.DEFAULT_CHARS + "çğışöüÇĞİŞÖÜ";
         p.size = size;
         p.color = Color.WHITE;
         BitmapFont out = gen.generateFont(p);
@@ -193,4 +194,3 @@ public class WinLeaderboardScreen implements Screen {
         }
     }
 }
-

@@ -184,11 +184,11 @@ public class LeaderboardScreen implements Screen {
         }
 
         shapes.begin(ShapeRenderer.ShapeType.Filled);
-        drawRoundRect(rootPanel, 34f, new Color(0.89f, 0.67f, 0.26f, 0.96f));
+        drawRect(rootPanel, 34f, new Color(0.89f, 0.67f, 0.26f, 0.96f));
         drawPill(mapBtnA, selectedMap == 0 ? new Color(1f, 0.82f, 0.4f, 1f) : new Color(0.56f, 0.43f, 0.33f, 1f));
         drawPill(mapBtnB, selectedMap == 1 ? new Color(1f, 0.82f, 0.4f, 1f) : new Color(0.56f, 0.43f, 0.33f, 1f));
-        drawRoundRect(leftColumn, 24f, new Color(0.81f, 0.65f, 0.43f, 1f));
-        drawRoundRect(rightColumn, 24f, new Color(0.81f, 0.65f, 0.43f, 1f));
+        drawRect(leftColumn, 24f, new Color(0.81f, 0.65f, 0.43f, 1f));
+        drawRect(rightColumn, 24f, new Color(0.81f, 0.65f, 0.43f, 1f));
         drawPill(leftTitle, new Color(0.56f, 0.43f, 0.33f, 1f));
         drawPill(rightTitle, new Color(0.56f, 0.43f, 0.33f, 1f));
         for (int i = 0; i < 5; i++) {
@@ -219,13 +219,13 @@ public class LeaderboardScreen implements Screen {
         batch.end();
     }
 
-    private void drawRoundRect(Rectangle r, float radius, Color c) {
+    private void drawRect(Rectangle r, float radius, Color c) {
         shapes.setColor(c);
         shapes.rect(r.x, r.y, r.width, r.height);
     }
 
     private void drawPill(Rectangle r, Color c) {
-        drawRoundRect(r, r.height * 0.5f, c);
+        drawRect(r, r.height * 0.5f, c);
     }
 
     private void drawCentered(String text, float x, float baselineY, float width) {
@@ -301,6 +301,7 @@ public class LeaderboardScreen implements Screen {
             return new BitmapFont();
         FreeTypeFontGenerator gen = new FreeTypeFontGenerator(f);
         FreeTypeFontGenerator.FreeTypeFontParameter p = new FreeTypeFontGenerator.FreeTypeFontParameter();
+        p.characters = FreeTypeFontGenerator.DEFAULT_CHARS + "çğışöüÇĞİŞÖÜ";
         p.size = size;
         p.color = Color.WHITE;
         BitmapFont out = gen.generateFont(p);

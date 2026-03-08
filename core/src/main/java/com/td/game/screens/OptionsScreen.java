@@ -113,13 +113,13 @@ public class OptionsScreen implements Screen {
         }
 
         shapes.begin(ShapeRenderer.ShapeType.Filled);
-        drawRoundRect(rootPanel, 34f, new Color(0.89f, 0.67f, 0.26f, 0.96f));
+        drawRect(rootPanel, 34f, new Color(0.89f, 0.67f, 0.26f, 0.96f));
         drawPill(musicLabelPill, new Color(0.56f, 0.43f, 0.33f, 1f));
         drawPill(soundLabelPill, new Color(0.56f, 0.43f, 0.33f, 1f));
         drawPill(musicPercentPill, new Color(0.56f, 0.43f, 0.33f, 1f));
         drawPill(soundPercentPill, new Color(0.56f, 0.43f, 0.33f, 1f));
         drawPill(displayModePill, new Color(0.56f, 0.43f, 0.33f, 1f));
-        drawRoundRect(backBtn, backBtn.height * 0.5f, new Color(0.56f, 0.43f, 0.33f, 1f));
+        drawRect(backBtn, backBtn.height * 0.5f, new Color(0.56f, 0.43f, 0.33f, 1f));
 
         shapes.setColor(new Color(0.82f, 0.82f, 0.82f, 1f));
         shapes.rect(musicTrack.x, musicTrack.y, musicTrack.width, musicTrack.height);
@@ -157,7 +157,7 @@ public class OptionsScreen implements Screen {
             Gdx.graphics.setFullscreenMode(dm);
             fullscreenMode = true;
         }
-        
+
         OptionsScreen fresh;
         if (returnScreen != null) {
             fresh = new OptionsScreen(game, returnScreen);
@@ -187,13 +187,13 @@ public class OptionsScreen implements Screen {
         updateKnobsFromVolume();
     }
 
-    private void drawRoundRect(Rectangle r, float radius, Color c) {
+    private void drawRect(Rectangle r, float radius, Color c) {
         shapes.setColor(c);
         shapes.rect(r.x, r.y, r.width, r.height);
     }
 
     private void drawPill(Rectangle r, Color c) {
-        drawRoundRect(r, r.height * 0.5f, c);
+        drawRect(r, r.height * 0.5f, c);
     }
 
     private void drawCentered(String text, float x, float baselineY, float width) {
@@ -247,6 +247,7 @@ public class OptionsScreen implements Screen {
             return new BitmapFont();
         FreeTypeFontGenerator gen = new FreeTypeFontGenerator(f);
         FreeTypeFontGenerator.FreeTypeFontParameter p = new FreeTypeFontGenerator.FreeTypeFontParameter();
+        p.characters = FreeTypeFontGenerator.DEFAULT_CHARS + "çğışöüÇĞİŞÖÜ";
         p.size = size;
         p.color = Color.WHITE;
         BitmapFont out = gen.generateFont(p);
@@ -349,4 +350,3 @@ public class OptionsScreen implements Screen {
         }
     }
 }
-

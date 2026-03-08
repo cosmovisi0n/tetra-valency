@@ -1146,11 +1146,11 @@ public class GameScreen implements Screen {
         uiFont.draw(uiBatch, type.getDisplayName(), tx, ty);
         ty -= lineH;
         uiFont.setColor(Color.WHITE);
-        uiFont.draw(uiBatch, "Hasar: x" + String.format("%.1f", type.getDamageMult()), tx, ty);
+        uiFont.draw(uiBatch, "Damage: x" + String.format("%.1f", type.getDamageMult()), tx, ty);
         ty -= lineH;
-        uiFont.draw(uiBatch, "Menzil: x" + String.format("%.1f", type.getRangeMult()), tx, ty);
+        uiFont.draw(uiBatch, "Range: x" + String.format("%.1f", type.getRangeMult()), tx, ty);
         ty -= lineH;
-        uiFont.draw(uiBatch, "Hiz: x" + String.format("%.1f", type.getAttackSpeedMult()), tx, ty);
+        uiFont.draw(uiBatch, "Speed: x" + String.format("%.1f", type.getAttackSpeedMult()), tx, ty);
         ty -= lineH;
         if (hoveredPillar.isActive()) {
             Element e = hoveredPillar.getCurrentElement();
@@ -2411,6 +2411,7 @@ public class GameScreen implements Screen {
         com.badlogic.gdx.files.FileHandle f = resolveAsset("fonts/font_game_screen.ttf");
         FreeTypeFontGenerator gen = new FreeTypeFontGenerator(f);
         FreeTypeFontGenerator.FreeTypeFontParameter p = new FreeTypeFontGenerator.FreeTypeFontParameter();
+        p.characters = FreeTypeFontGenerator.DEFAULT_CHARS + "çğışöüÇĞİŞÖÜ";
         p.size = size;
         p.color = Color.WHITE;
         BitmapFont font = gen.generateFont(p);

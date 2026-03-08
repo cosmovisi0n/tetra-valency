@@ -69,11 +69,11 @@ public class MapSelectScreen implements Screen {
         float btnH = 48f;
         float btnGap = 12f;
         float btnTotalW = btnW * 2f + btnGap;
-        
+
         float btnStartXA = mapA.x + (mapA.width - btnTotalW) * 0.5f;
         newGameABtn = new Rectangle(btnStartXA, mapA.y + 24f, btnW, btnH);
         continueABtn = new Rectangle(btnStartXA + btnW + btnGap, mapA.y + 24f, btnW, btnH);
-        
+
         float btnStartXB = mapB.x + (mapB.width - btnTotalW) * 0.5f;
         newGameBBtn = new Rectangle(btnStartXB, mapB.y + 24f, btnW, btnH);
         continueBBtn = new Rectangle(btnStartXB + btnW + btnGap, mapB.y + 24f, btnW, btnH);
@@ -101,10 +101,10 @@ public class MapSelectScreen implements Screen {
         shapes.begin(ShapeRenderer.ShapeType.Filled);
         drawCard(mapA, hoverA);
         drawCard(mapB, hoverB);
-        
+
         drawButton(newGameABtn, newGameABtn.contains(Gdx.input.getX(), mouseY));
         drawDisabledButton(continueABtn);
-        
+
         drawButton(newGameBBtn, newGameBBtn.contains(Gdx.input.getX(), mouseY));
         drawDisabledButton(continueBBtn);
         drawButton(backBtn, backBtn.contains(Gdx.input.getX(), mouseY));
@@ -116,12 +116,12 @@ public class MapSelectScreen implements Screen {
         textFont.setColor(Color.WHITE);
         drawCentered(textFont, "ELEMENTAL PLATEAU", mapA.x, mapA.y + mapA.height - 18f, mapA.width);
         drawCentered(textFont, "TETRA DESERT", mapB.x, mapB.y + mapB.height - 18f, mapB.width);
-        
+
         textFont.setColor(new Color(0.16f, 0.11f, 0.06f, 1f));
         drawCentered(textFont, "NEW GAME", newGameABtn.x, newGameABtn.y + 34f, newGameABtn.width);
         textFont.setColor(new Color(0.5f, 0.45f, 0.4f, 1f));
         drawCentered(textFont, "CONTINUE", continueABtn.x, continueABtn.y + 34f, continueABtn.width);
-        
+
         textFont.setColor(new Color(0.16f, 0.11f, 0.06f, 1f));
         drawCentered(textFont, "NEW GAME", newGameBBtn.x, newGameBBtn.y + 34f, newGameBBtn.width);
         textFont.setColor(new Color(0.5f, 0.45f, 0.4f, 1f));
@@ -192,6 +192,7 @@ public class MapSelectScreen implements Screen {
         }
         FreeTypeFontGenerator gen = new FreeTypeFontGenerator(file);
         FreeTypeFontGenerator.FreeTypeFontParameter p = new FreeTypeFontGenerator.FreeTypeFontParameter();
+        p.characters = FreeTypeFontGenerator.DEFAULT_CHARS + "çğışöüÇĞİŞÖÜ";
         p.size = size;
         p.color = Color.WHITE;
         BitmapFont out = gen.generateFont(p);
@@ -284,4 +285,3 @@ public class MapSelectScreen implements Screen {
         }
     }
 }
-

@@ -113,15 +113,15 @@ public class EndgameScreen implements Screen {
         batch.end();
 
         shapes.begin(ShapeRenderer.ShapeType.Filled);
-        drawRoundRect(rootPanel, 30f, MENU_BASE);
+        drawRect(rootPanel, 30f, MENU_BASE);
 
         if (endState == EndState.WIN || endState == EndState.ENDLESS_FINISH) {
-            drawRoundRect(enterLeaderboardBtn, enterLeaderboardBtn.height * 0.5f, BUTTON_BG);
+            drawRect(enterLeaderboardBtn, enterLeaderboardBtn.height * 0.5f, BUTTON_BG);
         }
         if (endState == EndState.WIN) {
-            drawRoundRect(endlessModeBtn, endlessModeBtn.height * 0.5f, BUTTON_BG);
+            drawRect(endlessModeBtn, endlessModeBtn.height * 0.5f, BUTTON_BG);
         }
-        drawRoundRect(mainMenuBtn, mainMenuBtn.height * 0.5f, BUTTON_BG);
+        drawRect(mainMenuBtn, mainMenuBtn.height * 0.5f, BUTTON_BG);
         shapes.end();
 
         batch.begin();
@@ -165,10 +165,10 @@ public class EndgameScreen implements Screen {
 
         if (nicknamePromptOpen) {
             shapes.begin(ShapeRenderer.ShapeType.Filled);
-            drawRoundRect(nicknameModal, 24f, new Color(0f, 0f, 0f, 0.92f));
-            drawRoundRect(nicknameInputBox, 14f, Color.WHITE);
-            drawRoundRect(nicknameOkBtn, nicknameOkBtn.height * 0.5f, BUTTON_BG);
-            drawRoundRect(nicknameCancelBtn, nicknameCancelBtn.height * 0.5f, BUTTON_BG);
+            drawRect(nicknameModal, 24f, new Color(0f, 0f, 0f, 0.92f));
+            drawRect(nicknameInputBox, 14f, Color.WHITE);
+            drawRect(nicknameOkBtn, nicknameOkBtn.height * 0.5f, BUTTON_BG);
+            drawRect(nicknameCancelBtn, nicknameCancelBtn.height * 0.5f, BUTTON_BG);
             shapes.end();
 
             batch.begin();
@@ -190,7 +190,7 @@ public class EndgameScreen implements Screen {
 
     }
 
-    private void drawRoundRect(Rectangle r, float radius, Color c) {
+    private void drawRect(Rectangle r, float radius, Color c) {
         shapes.setColor(c);
         shapes.rect(r.x, r.y, r.width, r.height);
     }
@@ -237,6 +237,7 @@ public class EndgameScreen implements Screen {
         }
         FreeTypeFontGenerator gen = new FreeTypeFontGenerator(file);
         FreeTypeFontGenerator.FreeTypeFontParameter p = new FreeTypeFontGenerator.FreeTypeFontParameter();
+        p.characters = FreeTypeFontGenerator.DEFAULT_CHARS + "çğışöüÇĞİŞÖÜ";
         p.size = size;
         p.color = Color.WHITE;
         BitmapFont out = gen.generateFont(p);
