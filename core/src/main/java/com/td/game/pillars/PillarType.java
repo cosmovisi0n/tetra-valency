@@ -1,10 +1,9 @@
 package com.td.game.pillars;
 
-
 public enum PillarType {
-    RAPID("Rapid Spire", 1.5f, 1.0f, 1.0f, 100), 
-    POWER("Power Monolith", 1.0f, 1.5f, 1.0f, 150), 
-    SNIPER("Sniper Pedestal", 1.0f, 1.0f, 1.5f, 200); 
+    RAPID("Rapid Spire", 1.5f, 1.0f, 1.0f, 100),
+    POWER("Power Monolith", 1.0f, 1.5f, 1.0f, 100),
+    SNIPER("Sniper Pedestal", 1.0f, 1.0f, 1.5f, 100);
 
     private final String displayName;
     private final float attackSpeedMult;
@@ -40,4 +39,3 @@ public enum PillarType {
         return price;
     }
 }
-
