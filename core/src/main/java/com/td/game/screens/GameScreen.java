@@ -1643,6 +1643,35 @@ public class GameScreen implements Screen {
         }
     }
 
+    private void giveRandomAugment() {
+        int r = MathUtils.random(1, 4);
+        applyAugment(r);
+    }
+
+    public void save(com.td.game.systems.SaveData data) {
+        data.globalDamageMult = this.globalDamageMult;
+        data.globalRangeMult = this.globalRangeMult;
+        data.globalAttackSpeedMult = this.globalAttackSpeedMult;
+        data.staffAuraRadius = this.staffAuraRadius;
+        
+        data.acquiredAugments.clear();
+        for (AcquiredAugment aug : this.acquiredAugments) {
+            data.acquiredAugments.add(aug.id);
+        }
+    }
+
+    public void load(com.td.game.systems.SaveData data) {
+        this.globalDamageMult = data.globalDamageMult;
+        this.globalRangeMult = data.globalRangeMult;
+        this.globalAttackSpeedMult = data.globalAttackSpeedMult;
+        this.staffAuraRadius = data.staffAuraRadius;
+
+        this.acquiredAugments.clear();
+        for (int augId : data.acquiredAugments) {
+            this.acquiredAugments.add(new AcquiredAugment(augId));
+        }
+    }
+
     private void applyAugmentChoice(int option) {
         if (!augmentChoiceActive)
             return;
