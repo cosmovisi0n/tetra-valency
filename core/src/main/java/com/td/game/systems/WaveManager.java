@@ -48,13 +48,13 @@ public class WaveManager implements Disposable {
 
         pinkBlobModel = modelFactory.loadPinkBlobModel();
         photoEnemyTypes.add(TYPE_PINK_BLOB);
-        
+
         golemModel = modelFactory.loadGolemModel();
         photoEnemyTypes.add(TYPE_GOLEM);
-        
+
         batModel = modelFactory.loadBatModel();
         photoEnemyTypes.add(TYPE_BAT);
-        
+
         demonModel = modelFactory.loadDemonModel();
     }
 
@@ -64,15 +64,15 @@ public class WaveManager implements Disposable {
 
         currentWave++;
         waveInProgress = true;
-        
+
         // Calculate enemies for this wave
         enemiesInWave = getEnemiesForWave(currentWave);
         enemiesSpawned = 0;
         spawnTimer = 0f;
         spawnInterval = getSpawnIntervalForWave(currentWave);
-        
+
         Gdx.app.log("WaveManager", String.format("Starting wave %d with %d enemies, spawn interval: %.1f",
-            currentWave, enemiesInWave, spawnInterval));
+                currentWave, enemiesInWave, spawnInterval));
     }
 
     public int getEnemiesForWave(int wave) {
@@ -90,7 +90,7 @@ public class WaveManager implements Disposable {
     public void update(float deltaTime) {
         if (!waveInProgress)
             return;
-        
+
         // Spawn enemies over time
         if (enemiesSpawned < enemiesInWave) {
             spawnTimer += deltaTime;
@@ -100,7 +100,7 @@ public class WaveManager implements Disposable {
                 enemiesSpawned++;
             }
         }
-        
+
         // Check wave completion
         if (enemiesSpawned >= enemiesInWave && getAliveEnemyCount() == 0) {
             waveInProgress = false;
@@ -109,15 +109,13 @@ public class WaveManager implements Disposable {
             }
         }
     }
-    
+
     private void spawnNextEnemy() {
         Enemy enemy = createEnemyForWave(currentWave, enemiesSpawned);
         enemy.setWaypoints(pathWaypoints);
         activeEnemies.add(enemy);
         Gdx.app.log("WaveManager", "Spawned enemy: " + enemy.getName() + " with element: " + enemy.getElement());
     }
-
-
 
     private Enemy createEnemyForWave(int wave, int index) {
         if (wave == 50) {
@@ -126,56 +124,53 @@ public class WaveManager implements Disposable {
             boss.setVisualScaleMultiplier(4.0f);
             return boss;
         }
-        
+
         if (photoEnemyTypes.size == 0) {
             throw new IllegalStateException("No enemy models found");
         }
-        
+
         int type = photoEnemyTypes.get(index % photoEnemyTypes.size);
         Enemy enemy;
-        
+
         float healthMult = 1f + (wave * 0.15f);
         float speedMult = Math.min(1.5f, 1f + (wave * 0.01f));
 
         switch (type) {
             case TYPE_PINK_BLOB:
                 enemy = new PinkBlobEnemy(
-                    55f * healthMult,
-                    1.2f * speedMult,
-                    Math.round(10 * (1 + wave * 0.1f))
-                );
+                        55f * healthMult,
+                        1.2f * speedMult,
+                        Math.round(10 * (1 + wave * 0.1f)));
                 enemy.setModel(pinkBlobModel);
                 enemy.setVisualScaleMultiplier(1.2f);
                 break;
-                
+
             case TYPE_GOLEM:
                 enemy = new GolemEnemy(
-                    220f * healthMult,
-                    0.6f * speedMult,
-                    Math.round(40 * (1 + wave * 0.1f))
-                );
+                        220f * healthMult,
+                        0.6f * speedMult,
+                        Math.round(40 * (1 + wave * 0.1f)));
                 enemy.setModel(golemModel);
-                enemy.setVisualScaleMultiplier(1.5f);
+                enemy.setVisualScaleMultiplier(3.0f);
                 break;
-                
+
             case TYPE_BAT:
             default:
                 enemy = new BatEnemy(
-                    100f * healthMult,
-                    1.3f * speedMult,
-                    Math.round(30 * (1 + wave * 0.1f))
-                );
+                        100f * healthMult,
+                        1.3f * speedMult,
+                        Math.round(30 * (1 + wave * 0.1f)));
                 enemy.setModel(batModel);
                 enemy.setVisualScaleMultiplier(1.3f);
                 break;
         }
-        
+
         Element randomElement = Element.values()[MathUtils.random(Element.values().length - 1)];
         enemy.setElement(randomElement);
-        
+
         Gdx.app.log("WaveManager", String.format("Created enemy: %s, Health: %.0f, Element: %s",
-            enemy.getName(), enemy.getMaxHealth(), randomElement.name()));
-        
+                enemy.getName(), enemy.getMaxHealth(), randomElement.name()));
+
         return enemy;
     }
 
