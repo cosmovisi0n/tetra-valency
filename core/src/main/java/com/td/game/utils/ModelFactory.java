@@ -197,8 +197,16 @@ public class ModelFactory implements Disposable {
         return modelBuilder.end();
     }
 
+    private FileHandle resolveAsset(String name) {
+        FileHandle direct = Gdx.files.internal(name);
+        if (direct.exists()) {
+            return direct;
+        }
+        return Gdx.files.internal("assets/" + name);
+    }
+
     private Model loadModel(String internalPath) {
-        FileHandle file = Gdx.files.internal(internalPath);
+        FileHandle file = resolveAsset(internalPath);
         if (!file.exists()) {
             Gdx.app.error("ModelFactory", "Model file not found: " + internalPath);
             throw new RuntimeException("Model file not found: " + internalPath);
