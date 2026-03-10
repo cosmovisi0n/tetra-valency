@@ -40,4 +40,18 @@ public class SaveManager {
         }
         return null;
     }
+
+    public static boolean hasSave(com.td.game.map.GameMap.MapType mapType) {
+        String path = getSaveFilePath(mapType);
+        return com.badlogic.gdx.Gdx.files.external(path).exists();
+    }
+
+    public static void deleteSave(com.td.game.map.GameMap.MapType mapType) {
+        String path = getSaveFilePath(mapType);
+        com.badlogic.gdx.files.FileHandle file = com.badlogic.gdx.Gdx.files.external(path);
+        if (file.exists()) {
+            file.delete();
+            com.badlogic.gdx.Gdx.app.log("SaveManager", "Deleted save file " + path);
+        }
+    }
 }
