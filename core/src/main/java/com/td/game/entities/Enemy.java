@@ -5,6 +5,8 @@ import com.badlogic.gdx.graphics.g3d.Environment;
 import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
+import com.badlogic.gdx.graphics.g3d.utils.AnimationController;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Disposable;
@@ -22,16 +24,22 @@ public class Enemy implements Disposable {
     protected boolean alive;
     protected boolean reachedEnd;
     protected boolean isFlying;
+    protected float armor;
 
     protected Array<Vector3> waypoints;
     protected int currentWaypointIndex;
     protected float rotation;
+    protected float walkTimer;
 
     protected Model model;
     protected ModelInstance modelInstance;
+    protected AnimationController animationController;
     protected Element element;
 
     protected float modelScaleMultiplier = 1f;
+    protected float visualScaleMultiplier = 1f;
+
+    protected float freezeTimer;
 
     public Enemy(float maxHealth, float speed, int reward) {
         this.maxHealth = maxHealth;
@@ -43,8 +51,10 @@ public class Enemy implements Disposable {
         this.alive = true;
         this.reachedEnd = false;
         this.isFlying = false;
+        this.armor = 0f;
         this.currentWaypointIndex = 0;
         this.position = new Vector3();
+        this.freezeTimer = 0;
     }
 
     public void setModel(Model model) {
@@ -54,6 +64,24 @@ public class Enemy implements Disposable {
             modelInstance.materials.set(i, modelInstance.materials.get(i).copy());
         }
 
+        // Animation setup
+        if (modelInstance.animations.size > 0) {
+            animationController = new AnimationController(modelInstance);
+            String animId = modelInstance.animations.get(0).id;
+            for (com.badlogic.gdx.graphics.g3d.model.Animation anim : modelInstance.animations) {
+                if (isFlying && anim.id.toLowerCase(java.util.Locale.ROOT).contains("fly")) {
+                    animId = anim.id;
+                    break;
+                } else if (!isFlying && (anim.id.toLowerCase(java.util.Locale.ROOT).contains("walk") || 
+                           anim.id.toLowerCase(java.util.Locale.ROOT).contains("move"))) {
+                    animId = anim.id;
+                    break;
+                }
+            }
+            animationController.setAnimation(animId, -1);
+        }
+
+        // Hitbox calculation
         com.badlogic.gdx.math.collision.BoundingBox bb = new com.badlogic.gdx.math.collision.BoundingBox();
         modelInstance.calculateBoundingBox(bb);
         Vector3 dim = new Vector3();
@@ -102,6 +130,44 @@ public class Enemy implements Disposable {
         }
     }
 
+    // Healthbar rendering
+    public void renderHealthBar(ShapeRenderer shapeRenderer) {
+        if (!alive) return;
+
+        float barWidth = 1.2f;
+        float barHeight = 0.15f;
+        float barX = position.x - barWidth / 2f;
+
+        float yOffset = isFlying ? 2.0f : 1.2f;
+        float barY = position.y + yOffset;
+        float barZ = position.z;
+
+        shapeRenderer.setColor(0.2f, 0.2f, 0.2f, 0.9f);
+        shapeRenderer.box(barX, barY, barZ, barWidth, barHeight, 0.05f);
+
+        Color healthColor;
+        if (element != null) {
+            healthColor = new Color(element.getR(), element.getG(), element.getB(), 1f);
+            // Tank/Armored enemies get darker health bar
+            if (armor > 0) {
+                healthColor.mul(0.7f, 0.7f, 0.7f, 1f);
+            }
+        } else {
+            float healthPercent = health / maxHealth;
+            if (healthPercent > 0.5f) {
+                healthColor = Color.GREEN;
+            } else if (healthPercent > 0.25f) {
+                healthColor = Color.YELLOW;
+            } else {
+                healthColor = Color.RED;
+            }
+        }
+        
+        shapeRenderer.setColor(healthColor);
+        float healthWidth = barWidth * (health / maxHealth);
+        shapeRenderer.box(barX, barY, barZ, healthWidth, barHeight, 0.05f);
+    }
+
     public void setWaypoints(Array<Vector3> waypoints) {
         this.waypoints = waypoints;
         if (waypoints.size > 0) {
@@ -113,6 +179,12 @@ public class Enemy implements Disposable {
     public void update(float deltaTime) {
         if (!alive || waypoints == null || waypoints.size == 0)
             return;
+
+        if (freezeTimer > 0) {
+            freezeTimer -= deltaTime;
+            updateModelPosition();
+            return;
+        }
 
         if (currentWaypointIndex < waypoints.size) {
             Vector3 target = waypoints.get(currentWaypointIndex);
@@ -130,6 +202,7 @@ public class Enemy implements Disposable {
             }
 
             position.add(direction.scl(speed * deltaTime));
+            walkTimer += speed * deltaTime;
 
             if (position.dst(target) < 0.2f) {
                 currentWaypointIndex++;
@@ -141,6 +214,11 @@ public class Enemy implements Disposable {
             }
         }
 
+        // Update animation
+        if (animationController != null) {
+            animationController.update(deltaTime);
+        }
+
         updateModelPosition();
     }
 
@@ -150,7 +228,19 @@ public class Enemy implements Disposable {
             float yOffset = isFlying ? 2f * scale : 0.25f * scale;
             
             modelInstance.transform.setToTranslation(position.x, position.y + yOffset, position.z);
-            modelInstance.transform.scl(modelScaleMultiplier);
+            
+            // Bobbing animation when no AnimationController
+            if (animationController == null && alive && freezeTimer <= 0) {
+                if (isFlying) {
+                    float bob = (float) Math.sin(walkTimer * 5f) * 0.3f * scale;
+                    modelInstance.transform.translate(0, bob, 0);
+                } else {
+                    float bob = (float) Math.abs(Math.sin(walkTimer * 10f)) * 0.1f * scale;
+                    modelInstance.transform.translate(0, bob, 0);
+                }
+            }
+            
+            modelInstance.transform.scl(modelScaleMultiplier * visualScaleMultiplier);
             modelInstance.transform.rotate(Vector3.Y, rotation + 180f);
 
             modelInstance.calculateTransforms();
@@ -167,6 +257,14 @@ public class Enemy implements Disposable {
 
     public void setFlying(boolean flying) {
         this.isFlying = flying;
+    }
+
+    public void setArmor(float armor) {
+        this.armor = armor;
+    }
+
+    public float getArmor() {
+        return armor;
     }
 
     public boolean isAlive() {
@@ -201,8 +299,16 @@ public class Enemy implements Disposable {
         return isFlying;
     }
 
+    public boolean isFrozen() {
+        return freezeTimer > 0;
+    }
+
     public String getName() {
         return "Enemy";
+    }
+
+    public void setVisualScaleMultiplier(float visualScaleMultiplier) {
+        this.visualScaleMultiplier = Math.max(0.1f, visualScaleMultiplier);
     }
 
     @Override
