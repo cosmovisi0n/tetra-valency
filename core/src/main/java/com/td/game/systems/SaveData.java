@@ -68,4 +68,9 @@ public class SaveData {
         json.setOutputType(com.badlogic.gdx.utils.JsonWriter.OutputType.json);
         return json.toJson(this);
     }
+
+    public static SaveData fromJson(String jsonString) {
+        com.badlogic.gdx.utils.Json json = new com.badlogic.gdx.utils.Json();
+        return json.fromJson(SaveData.class, jsonString);
+    }
 }
