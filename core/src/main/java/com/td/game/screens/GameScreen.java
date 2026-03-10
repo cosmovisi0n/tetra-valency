@@ -175,21 +175,20 @@ public class GameScreen implements Screen {
     private float staffAuraRadius = 8f;
     private static final int MERGE_COST = 20;
     private static final float INFO_PANEL_SHIFT_DOWN = 100f;
-    private static final float GATE_MODEL_SCALE_MULTIPLIER = 3f;
-
     public GameScreen(TowerDefenseGame game) {
-        this(game, GameMap.MapType.ELEMENTAL_CASTLE);
+        this(game, GameMap.MapType.ELEMENTAL_CASTLE, false);
     }
 
-    private float coreBobTimer = 0f;
-    private float coreBaseX = 0f;
-    private float coreBaseY = 1.2f;
-    private float coreBaseZ = 0f;
-    private float coreScale = 1f;
-
     public GameScreen(TowerDefenseGame game, GameMap.MapType mapType) {
+        this(game, mapType, false);
+    }
+
+    private boolean loadFromSave;
+
+    public GameScreen(TowerDefenseGame game, GameMap.MapType mapType, boolean loadFromSave) {
         this.game = game;
         this.mapType = mapType == null ? GameMap.MapType.ELEMENTAL_CASTLE : mapType;
+        this.loadFromSave = loadFromSave;
     }
 
     @Override
