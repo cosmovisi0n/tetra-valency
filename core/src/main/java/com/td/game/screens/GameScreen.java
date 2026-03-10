@@ -390,6 +390,10 @@ public class GameScreen implements Screen {
         autoplayEnabled = false;
 
         game.audio.playMapMusic(mapType);
+
+        if (this.loadFromSave) {
+            loadGame();
+        }
     }
 
     private void createModels() {
@@ -1672,6 +1676,35 @@ public class GameScreen implements Screen {
         }
 
         com.td.game.systems.SaveManager.save(data, mapType);
+    }
+
+    private void loadGame() {
+        com.td.game.systems.SaveData data = com.td.game.systems.SaveManager.load(mapType);
+        if (data != null) {
+            this.globalTimer = data.globalTimer;
+            waveManager.load(data);
+            economyManager.load(data);
+            player.load(data);
+            inventory.load(data);
+            staffUI.load(data);
+
+            if (data.mergeSlot1 != null) mergeBoard.setSlot1Element(Element.valueOf(data.mergeSlot1));
+            if (data.mergeSlot2 != null) mergeBoard.setSlot2Element(Element.valueOf(data.mergeSlot2));
+            if (data.mergeResult != null) mergeBoard.setResultElement(Element.valueOf(data.mergeResult));
+
+            this.load(data);
+
+            pillars.clear();
+            for (com.td.game.systems.SaveData.PillarSaveData pData : data.pillars) {
+                PillarType pType = PillarType.valueOf(pData.type);
+                Pillar pillar = new Pillar(pType, new Vector3(pData.x, pData.y, pData.z), modelFactory);
+                pillar.load(pData);
+                pillars.add(pillar);
+            }
+            com.badlogic.gdx.Gdx.app.log("GameScreen", "Save file loaded successfully.");
+        } else {
+            com.badlogic.gdx.Gdx.app.error("GameScreen", "No save file found to load.");
+        }
     }
 
     public void save(com.td.game.systems.SaveData data) {
