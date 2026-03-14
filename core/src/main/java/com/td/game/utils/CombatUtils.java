@@ -56,13 +56,45 @@ public class CombatUtils {
                     weakAgainstMap.put(elemName, weak);
                 }
             } else {
-                Gdx.app.error("CombatUtils", "Could not find element_interaction.json");
+                // Hardcoded fallback matrix if JSON is missing
+                setupFallbackMatrix();
             }
         } catch (Exception e) {
-            Gdx.app.error("CombatUtils", "Error parsing element interactions", e);
+            setupFallbackMatrix();
         }
-
         initialized = true;
+    }
+
+    private static void setupFallbackMatrix() {
+        // Clear maps
+        strongAgainstMap.clear();
+        weakAgainstMap.clear();
+
+        // Prime relationships
+        addRelationship("FIRE", new String[] { "AIR", "POISON" }, new String[] { "WATER", "EARTH" });
+        addRelationship("WATER", new String[] { "FIRE", "EARTH" }, new String[] { "AIR", "ICE" });
+        addRelationship("EARTH", new String[] { "WATER", "GOLD" }, new String[] { "FIRE", "AIR" });
+        addRelationship("AIR", new String[] { "EARTH", "ICE" }, new String[] { "FIRE", "STEAM" });
+
+        // Hybrid relationships
+        addRelationship("STEAM", new String[] { "FIRE", "AIR" }, new String[] { "WATER", "ICE" });
+        addRelationship("ICE", new String[] { "WATER", "STEAM" }, new String[] { "FIRE", "LIGHT" });
+        addRelationship("POISON", new String[] { "LIFE", "EARTH" }, new String[] { "FIRE", "LIGHT" });
+        addRelationship("LIGHT", new String[] { "POISON", "ICE" }, new String[] { "EARTH", "GOLD" });
+        addRelationship("GOLD", new String[] { "LIGHT", "EARTH" }, new String[] { "WATER", "LIFE" });
+        addRelationship("LIFE", new String[] { "GOLD", "WATER" }, new String[] { "POISON", "FIRE" });
+    }
+
+    private static void addRelationship(String element, String[] strongArr, String[] weakArr) {
+        Set<String> strong = new HashSet<>();
+        for (String s : strongArr)
+            strong.add(s);
+        strongAgainstMap.put(element, strong);
+
+        Set<String> weak = new HashSet<>();
+        for (String w : weakArr)
+            weak.add(w);
+        weakAgainstMap.put(element, weak);
     }
 
     public static float getDamageMultiplier(Element attacker, Element defender) {

@@ -74,6 +74,7 @@ public class Enemy implements Disposable {
     protected float regenBlockTimer;
 
     protected float knockbackDistance;
+    protected java.util.Map<Element, Float> elementalResistances;
 
     protected boolean revived;
     protected boolean ally;
@@ -122,6 +123,10 @@ public class Enemy implements Disposable {
         this.revived = false;
         this.ally = false;
         this.distanceTraveled = 0;
+        this.elementalResistances = new java.util.HashMap<>();
+        for (Element e : Element.values()) {
+            elementalResistances.put(e, 0f);
+        }
     }
 
     public void setModel(Model model) {
@@ -416,10 +421,15 @@ public class Enemy implements Disposable {
         float armorReduction = armor / (armor + 100f);
         float actualDamage = damage * (1f - armorReduction);
 
-        // Element damage multiplier
-        if (attackerElement != null && this.element != null) {
-            float multiplier = com.td.game.utils.CombatUtils.getDamageMultiplier(attackerElement, this.element);
-            actualDamage *= multiplier;
+        // Element damage multiplier & resistance
+        if (attackerElement != null) {
+            if (this.element != null) {
+                float multiplier = com.td.game.utils.CombatUtils.getDamageMultiplier(attackerElement, this.element);
+                actualDamage *= multiplier;
+            }
+            // Specific element resistance (e.g. 0.2 means 20% reduction)
+            float resistance = elementalResistances.getOrDefault(attackerElement, 0f);
+            actualDamage *= (1f - resistance);
         }
 
         // Drench effect: increases lightning/light damage

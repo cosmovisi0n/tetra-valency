@@ -15,6 +15,14 @@ public class Projectile {
     private float speed;
     private float damage;
     private boolean active;
+    private Vector3 currentDirection = new Vector3();
+    private static final float SMOOTHING_FACTOR = 5.0f;
+
+    public interface ImpactListener {
+        void onImpact(Projectile projectile, Enemy target);
+    }
+
+    private ImpactListener impactListener;
 
     private ModelInstance modelInstance;
 
@@ -73,21 +81,34 @@ public class Projectile {
         Vector3 targetPos = target.getPosition().cpy();
         targetPos.y += 1.0f;
 
-        Vector3 direction = targetPos.cpy().sub(position).nor();
-        position.add(direction.scl(speed * delta));
+        Vector3 targetDirection = targetPos.cpy().sub(position).nor();
+        if (currentDirection.isZero()) {
+            currentDirection.set(targetDirection);
+        } else {
+            currentDirection.lerp(targetDirection, delta * SMOOTHING_FACTOR).nor();
+        }
+        position.add(currentDirection.cpy().scl(speed * delta));
 
         if (modelInstance != null) {
             modelInstance.transform.setToTranslation(position);
         }
 
-        if (position.dst(targetPos) < 1.0f) {
+        if (position.dst(targetPos) < 0.8f) { // Adjusted threshold for smoothed movement
             onHit();
         }
+    }
+
+    public void setImpactListener(ImpactListener listener) {
+        this.impactListener = listener;
     }
 
     private void onHit() {
         if (!isBeam) {
             active = false;
+        }
+
+        if (impactListener != null) {
+            impactListener.onImpact(this, target);
         }
 
         switch (element) {

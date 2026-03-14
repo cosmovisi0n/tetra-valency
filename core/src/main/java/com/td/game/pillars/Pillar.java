@@ -24,6 +24,7 @@ public class Pillar implements Disposable {
     private float bonusDamageMult = 1f;
     private float bonusRangeMult = 1f;
     private float bonusAttackSpeedMult = 1f;
+    private float nextHitDamageMultiplier = 1f;
 
     private float attackTimer = 0f;
     private float goldAccumulator = 0f;
@@ -118,8 +119,11 @@ public class Pillar implements Disposable {
         if (attackTimer <= 0) {
             com.td.game.entities.Enemy target = findTarget(screen.getWaveManager());
             if (target != null) {
-                float damage = 20.0f * bonusDamageMult * type.getDamageMult();
+                float elementMult = currentElement.getBaseDamageMultiplier();
+                float damage = 20.0f * bonusDamageMult * type.getDamageMult() * elementMult * nextHitDamageMultiplier;
                 float projSpeed = 15.0f;
+
+                nextHitDamageMultiplier = 1f; // Reset after use
 
                 Vector3 spawnPos = position.cpy();
                 spawnPos.y += 2.0f;
@@ -172,7 +176,11 @@ public class Pillar implements Disposable {
     }
 
     public float getAttackRange() {
-        return baseRange * type.getRangeMult() * bonusRangeMult;
+        float range = 8.0f * type.getRangeMult();
+        if (currentElement != null) {
+            range *= currentElement.getBaseRangeMultiplier();
+        }
+        return range * bonusRangeMult;
     }
 
     public boolean canAcceptOrb() {
@@ -205,6 +213,10 @@ public class Pillar implements Disposable {
         bonusDamageMult = d;
         bonusRangeMult = r;
         bonusAttackSpeedMult = s;
+    }
+
+    public void setNextHitBuff(float multiplier) {
+        this.nextHitDamageMultiplier = multiplier;
     }
 
     public void save(com.td.game.systems.SaveData.PillarSaveData pData) {

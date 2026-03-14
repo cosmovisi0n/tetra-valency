@@ -1927,8 +1927,7 @@ public class GameScreen implements Screen {
                 range = 1.15f;
                 break;
             case LIFE:
-                speed = 1.15f;
-                damage = 1.08f;
+                // Life specialization: handled in updatePillarMultipliers specialized logic
                 break;
             default:
                 break;
@@ -1952,6 +1951,11 @@ public class GameScreen implements Screen {
                 damage *= aura[0];
                 range *= aura[1];
                 speed *= aura[2];
+
+                // Special Life Buff: Next Hit %250
+                if (staffElement == Element.LIFE) {
+                    pillar.setNextHitBuff(2.5f);
+                }
             }
             pillar.setExternalMultipliers(damage, range, speed);
         }
