@@ -65,14 +65,21 @@ public class SaveData {
         wavesShownAugments = new Array<>();
     }
 
-    public String toJson() {
+    private static com.badlogic.gdx.utils.Json newJson() {
         com.badlogic.gdx.utils.Json json = new com.badlogic.gdx.utils.Json();
         json.setOutputType(com.badlogic.gdx.utils.JsonWriter.OutputType.json);
-        return json.toJson(this);
+        json.setElementType(SaveData.class, "inventoryOrbs", String.class);
+        json.setElementType(SaveData.class, "acquiredAugments", Integer.class);
+        json.setElementType(SaveData.class, "wavesShownAugments", Integer.class);
+        json.setElementType(SaveData.class, "pillars", PillarSaveData.class);
+        return json;
+    }
+
+    public String toJson() {
+        return newJson().toJson(this);
     }
 
     public static SaveData fromJson(String jsonString) {
-        com.badlogic.gdx.utils.Json json = new com.badlogic.gdx.utils.Json();
-        return json.fromJson(SaveData.class, jsonString);
+        return newJson().fromJson(SaveData.class, jsonString);
     }
 }
