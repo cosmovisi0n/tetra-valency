@@ -26,6 +26,8 @@ public class Enemy implements Disposable {
     protected boolean isFlying;
     protected float armor;
     protected float shield;
+    protected boolean isAllied = false;
+    protected boolean isMovingBackwards = false;
 
     protected Array<Vector3> waypoints;
     protected int currentWaypointIndex;
@@ -251,8 +253,10 @@ public class Enemy implements Disposable {
             return;
         }
 
-        if (currentWaypointIndex < waypoints.size) {
-            Vector3 target = waypoints.get(currentWaypointIndex);
+        boolean endReached = isMovingBackwards ? currentWaypointIndex < 0 : currentWaypointIndex >= waypoints.size;
+
+        if (!endReached) {
+            Vector3 target = waypoints.get(Math.max(0, Math.min(waypoints.size - 1, currentWaypointIndex)));
             Vector3 direction = target.cpy().sub(position).nor();
 
             if (direction.len2() > 0.01f) {
@@ -284,9 +288,14 @@ public class Enemy implements Disposable {
             walkTimer += actualSpeed * deltaTime;
 
             if (position.dst(target) < 0.2f) {
-                currentWaypointIndex++;
+                if (isMovingBackwards) {
+                    currentWaypointIndex--;
+                } else {
+                    currentWaypointIndex++;
+                }
 
-                if (currentWaypointIndex >= waypoints.size) {
+                boolean nowEndReached = isMovingBackwards ? currentWaypointIndex < 0 : currentWaypointIndex >= waypoints.size;
+                if (nowEndReached) {
                     reachedEnd = true;
                     alive = false;
                 }
@@ -595,6 +604,22 @@ public class Enemy implements Disposable {
 
     public void setVisualScaleMultiplier(float visualScaleMultiplier) {
         this.visualScaleMultiplier = Math.max(0.1f, visualScaleMultiplier);
+    }
+
+    public boolean isAllied() {
+        return isAllied;
+    }
+
+    public void setAllied(boolean allied) {
+        this.isAllied = allied;
+    }
+
+    public void setMovingBackwards(boolean movingBackwards) {
+        this.isMovingBackwards = movingBackwards;
+    }
+
+    public void setCurrentWaypointIndex(int index) {
+        this.currentWaypointIndex = index;
     }
 
     @Override
