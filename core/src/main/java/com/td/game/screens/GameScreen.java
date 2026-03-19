@@ -28,6 +28,7 @@ import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.Ray;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.JsonValue;
+import com.badlogic.gdx.files.FileHandle;
 import com.td.game.TowerDefenseGame;
 import com.td.game.elements.Element;
 import com.td.game.inventory.Inventory;
@@ -37,6 +38,13 @@ import com.td.game.pillars.PillarType;
 import com.td.game.player.Player;
 import com.td.game.systems.EconomyManager;
 import com.td.game.systems.WaveManager;
+import com.td.game.entities.Projectile;
+import com.td.game.entities.Effect;
+import com.td.game.entities.Enemy;
+import com.td.game.entities.DemonEnemy;
+import com.td.game.entities.GolemEnemy;
+import com.td.game.entities.BatEnemy;
+import com.td.game.entities.PinkBlobEnemy;
 import com.td.game.ui.ContextualMenuPanel;
 import com.td.game.ui.GameShop;
 import com.td.game.ui.MergeBoard;
@@ -64,6 +72,7 @@ public class GameScreen implements Screen {
 
     private EconomyManager economyManager;
     private WaveManager waveManager;
+    private Array<com.badlogic.gdx.math.Vector3> pathWaypoints;
     private ModelFactory modelFactory;
     private int currentWave = 0;
     private final int maxWaves = 50;
@@ -89,6 +98,10 @@ public class GameScreen implements Screen {
     private ModelInstance coreSphereInstance;
     private float coreFlashTimer;
     private float coreBobTimer;
+    private Model demonModel;
+    private Model golemModel;
+    private Model batModel;
+    private Model pinkBlobModel;
     private float coreBaseX;
     private float coreBaseY;
     private float coreBaseZ;
@@ -150,6 +163,10 @@ public class GameScreen implements Screen {
     private boolean showingAugmentsPanel;
     private float playBtnX, playBtnY, playBtnW, playBtnH;
     private float seeAugmentsBtnX, seeAugmentsBtnY, seeAugmentsBtnW, seeAugmentsBtnH;
+
+    private Array<com.td.game.entities.Projectile> activeProjectiles = new Array<>();
+    private Array<com.td.game.entities.Effect> activeEffects = new Array<>();
+    private HashMap<Element, Texture> effectTextures = new HashMap<>();
 
     private boolean gameOver;
     private boolean gameWon;
@@ -338,7 +355,7 @@ public class GameScreen implements Screen {
         economyManager = new EconomyManager();
         economyManager.setGold(Constants.STARTING_GOLD);
 
-        Array<Vector3> pathWaypoints = new Array<>();
+        pathWaypoints = new Array<>();
         for (int[] wp : gameMap.getWaypointsForMap()) {
             pathWaypoints.add(new Vector3(wp[0] * Constants.TILE_SIZE, 0, wp[1] * Constants.TILE_SIZE));
         }
@@ -408,6 +425,7 @@ public class GameScreen implements Screen {
 
 
         game.audio.playMapMusic(mapType);
+        loadEffectTextures();
 
         if (this.loadFromSave) {
             loadGame();
@@ -426,6 +444,11 @@ public class GameScreen implements Screen {
 
         Model valid = modelFactory.createHighlightModel(Color.YELLOW);
         validHighlight = new ModelInstance(valid);
+
+        demonModel = modelFactory.loadDemonModel();
+        golemModel = modelFactory.loadGolemModel();
+        batModel = modelFactory.loadBatModel();
+        pinkBlobModel = modelFactory.loadPinkBlobModel();
     }
 
     public void showMessage(String msg) {
@@ -497,6 +520,10 @@ public class GameScreen implements Screen {
         for (Pillar pillar : pillars)
             pillar.render(modelBatch, environment);
 
+        for (com.td.game.entities.Projectile proj : activeProjectiles) {
+            proj.render(modelBatch, environment);
+        }
+
         // Render enemies
         for (com.td.game.entities.Enemy enemy : waveManager.getActiveEnemies()) {
             enemy.render(modelBatch, environment);
@@ -536,6 +563,12 @@ public class GameScreen implements Screen {
             RangeOverlayRenderer.drawAuraRange(uiShapeRenderer, camera, player, pillars, staffAuraRadius, uiScale,
                     mapAreaWidth, screenHeight, staffUI.getEquippedElement());
         }
+
+        uiBatch.begin();
+        for (com.td.game.entities.Effect effect : activeEffects) {
+            effect.render(uiBatch, camera);
+        }
+        uiBatch.end();
 
         renderMinimalHud(screenWidth, screenHeight, mapAreaWidth);
         renderMessages(screenWidth, screenHeight);
@@ -2202,18 +2235,59 @@ public class GameScreen implements Screen {
         for (com.td.game.entities.Enemy enemy : waveManager.getActiveEnemies()) {
             enemy.update(delta);
             if (enemy.hasReachedEnd()) {
-                economyManager.loseLife();
-                coreFlashTimer = 0.4f;
+                if (!enemy.isAllied()) {
+                    economyManager.loseLife();
+                    coreFlashTimer = 0.4f;
+                }
             }
             if (!enemy.isAlive() && !enemy.hasReachedEnd()) {
-                economyManager.earn(enemy.getReward());
+                if (!enemy.isAllied()) {
+                    economyManager.earn(enemy.getReward());
+                    
+                    // Check for LIFE pillar revive
+                    for (Pillar p : pillars) {
+                        if (p.isActive() && p.getCurrentElement() == Element.LIFE) {
+                            if (p.getPosition().dst(enemy.getPosition()) < p.getAttackRange()) {
+                                reviveAsAlly(enemy);
+                                break;
+                            }
+                        }
+                    }
+                }
             }
         }
         waveManager.removeDeadEnemies();
 
-        // Update pillars
+        // Update Staff Aura Buffs
+        updateStaffAuraBuffs();
+
+        // Update pillars and Gold passive
         for (Pillar pillar : pillars) {
-            pillar.update(delta);
+            pillar.update(delta, waveManager.getActiveEnemies(), activeProjectiles);
+            if (pillar.isActive() && pillar.getCurrentElement() == Element.GOLD) {
+                // Gold passive: 1 gold per second per level? Let's say 2 gold/sec base.
+                economyManager.earn(2.0f * delta);
+            }
+        }
+
+        // Update Projectiles
+        for (int i = activeProjectiles.size - 1; i >= 0; i--) {
+            com.td.game.entities.Projectile proj = activeProjectiles.get(i);
+            proj.update(delta);
+            if (proj.isImpacted()) {
+                handleProjectileImpact(proj);
+                activeProjectiles.removeIndex(i);
+            } else if (!proj.isAlive()) {
+                activeProjectiles.removeIndex(i);
+            }
+        }
+
+        // Update Effects
+        for (int i = activeEffects.size - 1; i >= 0; i--) {
+            activeEffects.get(i).update(delta);
+            if (!activeEffects.get(i).isAlive()) {
+                activeEffects.removeIndex(i);
+            }
         }
 
         // Check game over conditions
@@ -3014,6 +3088,132 @@ public class GameScreen implements Screen {
 
         uiFont.getData().setScale(uiScale);
         uiBatch.end();
+    }
+
+    private void loadEffectTextures() {
+        String[] types = { "fire", "water", "air", "ice", "poison", "light", "steam" };
+        for (String type : types) {
+            String path = "textures/attacks/" + type + "_effect.png";
+            com.badlogic.gdx.files.FileHandle file = resolveAsset(path);
+            if (file.exists()) {
+                effectTextures.put(Element.valueOf(type.toUpperCase(java.util.Locale.ROOT)), new Texture(file));
+            }
+        }
+    }
+
+    private void handleProjectileImpact(com.td.game.entities.Projectile proj) {
+        com.td.game.entities.Enemy target = proj.getTargetEnemy();
+        if (target == null || !target.isAlive())
+            return;
+
+        Element element = proj.getElement();
+        float damage = proj.getDamage();
+
+        target.takeDamage(damage, element);
+
+        // Spawn impact effect
+        spawnEffect(target.getPosition(), element, 0.5f, 1.0f);
+
+        // Element-specific effects
+        switch (element) {
+            case FIRE:
+                // AoE Damage (radius 3.0)
+                for (com.td.game.entities.Enemy e : waveManager.getActiveEnemies()) {
+                    if (e != target && e.isAlive() && e.getPosition().dst(target.getPosition()) < 3.0f) {
+                        e.takeDamage(damage * 0.5f, element);
+                    }
+                }
+                target.applyBurn(3f, damage * 0.2f);
+                break;
+            case WATER:
+                target.applySlow(3f, 0.5f);
+                break;
+            case AIR:
+                target.applyKnockback(2.0f);
+                break;
+            case EARTH:
+                target.applyRoot(2f, 0.5f, 0f); // Stun/Root
+                break;
+            case ICE:
+                target.applyFreeze(2f);
+                break;
+            case POISON:
+                target.applyPoison(5f, damage * 0.1f, 1);
+                target.applyRegenBlock(5f);
+                break;
+            case STEAM:
+                float hpPercent = target.getHealth() / target.getMaxHealth();
+                float kbDist = 1.0f + (1.0f - hpPercent) * 3.0f;
+                target.applyKnockback(kbDist);
+                break;
+            default:
+                break;
+        }
+    }
+
+    private void spawnEffect(Vector3 pos, Element element, float lifetime, float scale) {
+        Texture tex = effectTextures.get(element);
+        if (tex != null) {
+            activeEffects.add(new com.td.game.entities.Effect(pos, tex, lifetime, scale * uiScale));
+        }
+    }
+
+    private void reviveAsAlly(com.td.game.entities.Enemy deadEnemy) {
+        com.td.game.entities.Enemy ally;
+        if (deadEnemy instanceof com.td.game.entities.DemonEnemy) {
+            ally = new com.td.game.entities.DemonEnemy(deadEnemy.getMaxHealth() * 0.5f, 1.0f, 0);
+            ally.setModel(demonModel);
+        } else if (deadEnemy instanceof com.td.game.entities.GolemEnemy) {
+            ally = new com.td.game.entities.GolemEnemy(deadEnemy.getMaxHealth() * 0.5f, 1.0f, 0);
+            ally.setModel(golemModel);
+        } else if (deadEnemy instanceof com.td.game.entities.BatEnemy) {
+            ally = new com.td.game.entities.BatEnemy(deadEnemy.getMaxHealth() * 0.5f, 1.0f, 0);
+            ally.setModel(batModel);
+        } else {
+            ally = new com.td.game.entities.PinkBlobEnemy(deadEnemy.getMaxHealth() * 0.5f, 1.0f, 0);
+            ally.setModel(pinkBlobModel);
+        }
+
+        // Set waypoints WITHOUT resetting position (setWaypoints resets to first)
+        // Manually wire up for backwards travel from end of path
+        ally.setWaypoints(pathWaypoints); // sets waypoints + positions at start
+        ally.setAllied(true);
+        ally.setMovingBackwards(true);
+        ally.setCurrentWaypointIndex(pathWaypoints.size - 1);
+        // Override position to end of path
+        if (pathWaypoints.size > 0) {
+            ally.getPosition().set(pathWaypoints.get(pathWaypoints.size - 1));
+        }
+
+        waveManager.getActiveEnemies().add(ally);
+        spawnEffect(ally.getPosition(), Element.LIFE, 1.0f, 1.5f);
+    }
+
+    private void updateStaffAuraBuffs() {
+        Vector3 alchemistPos = new Vector3(playerGridX * Constants.TILE_SIZE, 0, playerGridZ * Constants.TILE_SIZE);
+        float radius = staffAuraRadius * Constants.TILE_SIZE;
+        Element equipped = staffUI.getEquippedElement();
+
+        for (Pillar p : pillars) {
+            if (p.getPosition().dst(alchemistPos) < radius) {
+                float dmgBuff = 1f;
+                float spdBuff = 1f;
+                float rngBuff = 1f;
+
+                if (equipped != null) {
+                    switch (equipped) {
+                        case LIGHT: spdBuff = 1.25f; break; // +25% Speed
+                        case FIRE: dmgBuff = 1.25f; break; // +25% Damage
+                        case WATER: rngBuff = 1.25f; break; // +25% Range
+                        case LIFE: dmgBuff = 1.5f; break; // Massive Damage Bonus
+                        default: break;
+                    }
+                }
+                p.setExternalMultipliers(dmgBuff, rngBuff, spdBuff);
+            } else {
+                p.setExternalMultipliers(1f, 1f, 1f);
+            }
+        }
     }
 
 }
