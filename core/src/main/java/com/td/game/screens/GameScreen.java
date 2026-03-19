@@ -3,6 +3,7 @@ package com.td.game.screens;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Locale;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
@@ -117,6 +118,9 @@ public class GameScreen implements Screen {
     private boolean speed2x;
     private boolean autoplayEnabled;
     private boolean consoleOpen;
+    private boolean consoleInputActive;
+    private String consoleInput = "";
+    private String consoleMessage = "";
     private float pauseIconX;
     private float pauseIconY;
     private float pauseIconSize;
@@ -398,6 +402,9 @@ public class GameScreen implements Screen {
         speed2x = false;
         autoplayEnabled = false;
         consoleOpen = false;
+        consoleInputActive = false;
+        consoleInput = "";
+        consoleMessage = "";
 
 
         game.audio.playMapMusic(mapType);
@@ -428,6 +435,9 @@ public class GameScreen implements Screen {
 
     public void toggleConsole() {
         consoleOpen = !consoleOpen;
+        if (!consoleOpen) {
+            consoleInputActive = false;
+        }
     }
 
 
@@ -598,9 +608,81 @@ public class GameScreen implements Screen {
         uiBatch.begin();
         uiFont.getData().setScale(uiScale * 0.65f);
         uiFont.setColor(Color.WHITE);
-        uiFont.draw(uiBatch, "C:\\>", consoleX + padding, consoleY + inputH - 6f * uiScale);
+        uiFont.draw(uiBatch, consoleInput, consoleX + padding, consoleY + inputH - 6f * uiScale);
         uiFont.getData().setScale(uiScale * 0.54f);
+        if (!consoleMessage.isEmpty()) {
+            float msgX = consoleX + padding;
+            float msgY = consoleY + consoleH - padding;
+            float msgW = consoleW - padding * 2f;
+            glyphLayout.setText(uiFont, consoleMessage, Color.WHITE, msgW, com.badlogic.gdx.utils.Align.left, true);
+            uiFont.draw(uiBatch, glyphLayout, msgX, msgY);
+        }
         uiBatch.end();
+    }
+
+    private void handleConsoleCommand(String rawCommand) {
+        if (rawCommand == null) {
+            return;
+        }
+        String command = rawCommand.trim();
+        if (command.isEmpty()) {
+            return;
+        }
+        command = command.toLowerCase(Locale.ROOT);
+
+        switch (command) {
+            case "help":
+                showConsoleMessage("Komutlar: help, killall, givegold, life, win");
+                break;
+            case "killall":
+                killAllEnemies();
+                showConsoleMessage("Tum dusmanlar olduruldu");
+                break;
+            case "givegold":
+                if (economyManager != null) {
+                    economyManager.earn(1000);
+                }
+                showConsoleMessage("1000 altin eklendi");
+                break;
+            case "life":
+                if (economyManager != null) {
+                    economyManager.setLives(Constants.STARTING_LIVES);
+                }
+                gameOver = false;
+                showConsoleMessage("Can fullendi");
+                break;
+            case "win":
+                int winWave = waveManager != null ? waveManager.getCurrentWave() : 0;
+                float winTime = globalTimer;
+                game.setScreen(new EndgameScreen(game, EndgameScreen.EndState.WIN, mapType, winWave, winTime));
+                dispose();
+                break;
+            default:
+                showConsoleMessage("Bilinmeyen komut: " + command);
+                break;
+        }
+    }
+
+    private void showConsoleMessage(String message) {
+        if (message == null) {
+            consoleMessage = "";
+        } else {
+            consoleMessage = message;
+        }
+    }
+
+    private boolean isInConsoleInputArea(int screenX, int flippedY, int screenWidth, int screenHeight) {
+        if (!consoleOpen) {
+            return false;
+        }
+        float consoleW = screenWidth * 0.25f;
+        float consoleH = screenHeight * 0.25f;
+        float consoleX = 0f;
+        float consoleY = screenHeight - consoleH;
+        float inputH = Math.max(26f * uiScale, consoleH * 0.18f);
+
+        return screenX >= consoleX && screenX <= consoleX + consoleW
+                && flippedY >= consoleY && flippedY <= consoleY + inputH;
     }
 
 
@@ -2174,6 +2256,26 @@ public class GameScreen implements Screen {
 
         @Override
         public boolean keyDown(int keycode) {
+            if (keycode == Input.Keys.GRAVE) {
+                toggleConsole();
+                return true;
+            }
+            if (consoleOpen && consoleInputActive) {
+                if (keycode == Input.Keys.BACKSPACE && !consoleInput.isEmpty()) {
+                    consoleInput = consoleInput.substring(0, consoleInput.length() - 1);
+                    return true;
+                }
+                if (keycode == Input.Keys.ENTER) {
+                    handleConsoleCommand(consoleInput);
+                    consoleInput = "";
+                    return true;
+                }
+                if (keycode == Input.Keys.ESCAPE) {
+                    consoleInputActive = false;
+                    return true;
+                }
+                return true;
+            }
             if (com.td.game.input.KeyBindings.handleShortcutKeys(keycode, game, mapType, GameScreen.this)) {
                 return true;
             }
@@ -2221,8 +2323,30 @@ public class GameScreen implements Screen {
         }
 
         @Override
+        public boolean keyTyped(char character) {
+            if (!consoleOpen || !consoleInputActive) {
+                return false;
+            }
+            if (character >= 32 && character != 127) {
+                if (consoleInput.length() < 120) {
+                    consoleInput += character;
+                }
+                return true;
+            }
+            return false;
+        }
+
+        @Override
         public boolean touchDown(int screenX, int screenY, int pointer, int button) {
             int flippedY = Gdx.graphics.getHeight() - screenY;
+
+            if (consoleOpen && button == Input.Buttons.LEFT) {
+                if (isInConsoleInputArea(screenX, flippedY, Gdx.graphics.getWidth(), Gdx.graphics.getHeight())) {
+                    consoleInputActive = true;
+                    return true;
+                }
+                consoleInputActive = false;
+            }
 
             if (gameOver && button == Input.Buttons.LEFT) {
                 float sw = Gdx.graphics.getWidth();
