@@ -128,7 +128,7 @@ public class GameScreen implements Screen {
     private float infoPanelW;
     private float infoPanelH;
     private boolean paused;
-    private boolean speed2x;
+    private int speedIndex;
     private boolean autoplayEnabled;
     private boolean consoleOpen;
     private boolean consoleInputActive;
@@ -203,6 +203,7 @@ public class GameScreen implements Screen {
     private static final int MERGE_COST = 20;
     private static final float INFO_PANEL_SHIFT_DOWN = 100f;
     private static final float GATE_MODEL_SCALE_MULTIPLIER = 2.0f;
+    private static final float[] SPEED_MULTIPLIERS = new float[] { 1f, 2f, 4f, 8f };
 
     public GameScreen(TowerDefenseGame game) {
         this(game, GameMap.MapType.ELEMENTAL_CASTLE, false);
@@ -416,7 +417,7 @@ public class GameScreen implements Screen {
         mergeInfoOpen = false;
         inventoryInfoOpen = false;
         paused = false;
-        speed2x = false;
+        speedIndex = 0;
         autoplayEnabled = false;
         consoleOpen = false;
         consoleInputActive = false;
@@ -456,6 +457,15 @@ public class GameScreen implements Screen {
         this.uiMessageTimer = 2.0f;
     }
 
+    private float getSpeedMultiplier() {
+        int clamped = MathUtils.clamp(speedIndex, 0, SPEED_MULTIPLIERS.length - 1);
+        return SPEED_MULTIPLIERS[clamped];
+    }
+
+    private String getSpeedLabel() {
+        return String.format(Locale.ROOT, "%.0fX", getSpeedMultiplier());
+    }
+
     public void toggleConsole() {
         consoleOpen = !consoleOpen;
         if (!consoleOpen) {
@@ -493,7 +503,7 @@ public class GameScreen implements Screen {
         }
 
         if (!gameOver && !gameWon && !paused) {
-            float simDelta = speed2x ? delta * 2f : delta;
+            float simDelta = delta * getSpeedMultiplier();
             update(simDelta);
         }
 
@@ -1235,7 +1245,7 @@ public class GameScreen implements Screen {
                 pauseIconX + (pauseIconSize - glyphLayout.width) * 0.5f,
                 pauseIconY + (pauseIconSize + glyphLayout.height) * 0.5f);
         uiFontLarge.setColor(Color.BLACK);
-        String speedText = speed2x ? "2X" : "1X";
+        String speedText = getSpeedLabel();
         glyphLayout.setText(uiFontLarge, speedText);
         uiFontLarge.draw(uiBatch, speedText, speedIconX + (speedIconSize - glyphLayout.width) * 0.5f,
                 speedIconY + (speedIconSize + glyphLayout.height) * 0.5f);
@@ -2571,8 +2581,8 @@ public class GameScreen implements Screen {
                     return true;
                 }
                 if (isInRect(screenX, flippedY, speedIconX, speedIconY, speedIconSize, speedIconSize)) {
-                    speed2x = !speed2x;
-                    showMessage(speed2x ? "2x Speed ON" : "2x Speed OFF");
+                    speedIndex = (speedIndex + 1) % SPEED_MULTIPLIERS.length;
+                    showMessage("Speed: " + getSpeedLabel());
                     return true;
                 }
 
