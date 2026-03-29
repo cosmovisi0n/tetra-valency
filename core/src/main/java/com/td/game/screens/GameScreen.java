@@ -134,6 +134,12 @@ public class GameScreen implements Screen {
     private boolean consoleInputActive;
     private String consoleInput = "";
     private String consoleMessage = "";
+    private static final String[] CONSOLE_COMMANDS = new String[] { "killall", "life", "win" };
+    private static final String[] CONSOLE_LABELS = new String[] { "Kill All", "Life 20", "Win" };
+    private float[] consoleBtnX;
+    private float[] consoleBtnY;
+    private float[] consoleBtnW;
+    private float[] consoleBtnH;
     private float pauseIconX;
     private float pauseIconY;
     private float pauseIconSize;
@@ -423,6 +429,10 @@ public class GameScreen implements Screen {
         consoleInputActive = false;
         consoleInput = "";
         consoleMessage = "";
+        consoleBtnX = new float[CONSOLE_COMMANDS.length];
+        consoleBtnY = new float[CONSOLE_COMMANDS.length];
+        consoleBtnW = new float[CONSOLE_COMMANDS.length];
+        consoleBtnH = new float[CONSOLE_COMMANDS.length];
 
 
         game.audio.playMapMusic(mapType);
@@ -645,21 +655,52 @@ public class GameScreen implements Screen {
         uiShapeRenderer.begin(ShapeRenderer.ShapeType.Line);
         uiShapeRenderer.setColor(Color.WHITE);
         uiShapeRenderer.rect(consoleX, consoleY, consoleW, consoleH);
-        uiShapeRenderer.line(consoleX, consoleY + inputH, consoleX + consoleW, consoleY + inputH);
+        uiShapeRenderer.end();
+
+        updateConsoleButtonLayout(screenWidth, screenHeight);
+
+        int mx = Gdx.input.getX();
+        int my = screenHeight - Gdx.input.getY();
+        uiShapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        for (int i = 0; i < CONSOLE_COMMANDS.length; i++) {
+            float bx = consoleBtnX[i];
+            float by = consoleBtnY[i];
+            float bw = consoleBtnW[i];
+            float bh = consoleBtnH[i];
+            boolean hover = isInRect(mx, my, bx, by, bw, bh);
+
+            if (hover) {
+                uiShapeRenderer.setColor(0.45f, 0.32f, 0.22f, 1f);
+            } else {
+                uiShapeRenderer.setColor(0.35f, 0.25f, 0.18f, 1f);
+            }
+            uiShapeRenderer.rect(bx, by, bw, bh);
+        }
+        uiShapeRenderer.end();
+
+        uiShapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+        uiShapeRenderer.setColor(new Color(0.8f, 0.7f, 0.5f, 1f));
+        for (int i = 0; i < CONSOLE_COMMANDS.length; i++) {
+            uiShapeRenderer.rect(consoleBtnX[i], consoleBtnY[i], consoleBtnW[i], consoleBtnH[i]);
+        }
         uiShapeRenderer.end();
 
         uiBatch.begin();
         uiFont.getData().setScale(uiScale * 0.65f);
         uiFont.setColor(Color.WHITE);
-        uiFont.draw(uiBatch, consoleInput, consoleX + padding, consoleY + inputH - 6f * uiScale);
-        uiFont.getData().setScale(uiScale * 0.54f);
-        if (!consoleMessage.isEmpty()) {
-            float msgX = consoleX + padding;
-            float msgY = consoleY + consoleH - padding;
-            float msgW = consoleW - padding * 2f;
-            glyphLayout.setText(uiFont, consoleMessage, Color.WHITE, msgW, com.badlogic.gdx.utils.Align.left, true);
-            uiFont.draw(uiBatch, glyphLayout, msgX, msgY);
+        uiFont.getData().setScale(uiScale * 0.48f);
+
+        uiFont.setColor(new Color(0.12f, 0.08f, 0.05f, 1f));
+        for (int i = 0; i < CONSOLE_COMMANDS.length; i++) {
+            float bx = consoleBtnX[i];
+            float by = consoleBtnY[i];
+            float bw = consoleBtnW[i];
+            float bh = consoleBtnH[i];
+            glyphLayout.setText(uiFont, CONSOLE_LABELS[i]);
+            uiFont.draw(uiBatch, CONSOLE_LABELS[i], bx + (bw - glyphLayout.width) / 2f,
+                    by + (bh + glyphLayout.height) / 2f);
         }
+
         uiBatch.end();
     }
 
@@ -675,7 +716,7 @@ public class GameScreen implements Screen {
 
         switch (command) {
             case "help":
-                showConsoleMessage("Command list: help, killall, givegold, life, win");
+                showConsoleMessage("Buttons: Kill All, Life 20, Win");
                 break;
             case "killall":
                 killAllEnemies();
@@ -689,10 +730,10 @@ public class GameScreen implements Screen {
                 break;
             case "life":
                 if (economyManager != null) {
-                    economyManager.setLives(200);
+                    economyManager.setLives(20);
                 }
                 gameOver = false;
-                showConsoleMessage("The lives was set to 200");
+                showConsoleMessage("The lives was set to 20");
                 break;
             case "win":
                 int winWave = waveManager != null ? waveManager.getCurrentWave() : 0;
@@ -714,18 +755,66 @@ public class GameScreen implements Screen {
         }
     }
 
-    private boolean isInConsoleInputArea(int screenX, int flippedY, int screenWidth, int screenHeight) {
-        if (!consoleOpen) {
-            return false;
+    private void updateConsoleButtonLayout(int screenWidth, int screenHeight) {
+        if (consoleBtnX == null || consoleBtnX.length != CONSOLE_COMMANDS.length) {
+            consoleBtnX = new float[CONSOLE_COMMANDS.length];
+            consoleBtnY = new float[CONSOLE_COMMANDS.length];
+            consoleBtnW = new float[CONSOLE_COMMANDS.length];
+            consoleBtnH = new float[CONSOLE_COMMANDS.length];
         }
         float consoleW = screenWidth * 0.25f;
         float consoleH = screenHeight * 0.25f;
         float consoleX = 0f;
         float consoleY = screenHeight - consoleH;
         float inputH = Math.max(26f * uiScale, consoleH * 0.18f);
+        float padding = 8f * uiScale;
 
-        return screenX >= consoleX && screenX <= consoleX + consoleW
-                && flippedY >= consoleY && flippedY <= consoleY + inputH;
+        float contentX = consoleX + padding;
+        float contentY = consoleY + inputH + padding;
+        float contentW = consoleW - padding * 2f;
+        float contentH = consoleH - inputH - padding * 2f;
+
+        float messageAreaH = 0f;
+        float buttonGap = 6f * uiScale;
+        int cols = 1;
+        int rows = CONSOLE_COMMANDS.length;
+
+        float minBtnH = 10f * uiScale;
+        float minButtonsH = rows * minBtnH + buttonGap * (rows - 1);
+        float buttonAreaH = contentH * 0.4f;
+        if (buttonAreaH < minButtonsH) {
+            buttonAreaH = minButtonsH;
+        }
+        if (buttonAreaH > contentH) {
+            buttonAreaH = contentH;
+        }
+
+        float btnW = contentW * 0.5f;
+        float btnH = (buttonAreaH - buttonGap * (rows - 1)) / rows;
+        if (btnH < minBtnH) {
+            btnH = minBtnH;
+        }
+
+        float totalButtonsH = rows * btnH + buttonGap * (rows - 1);
+        float topY = contentY + contentH - btnH;
+        for (int i = 0; i < CONSOLE_COMMANDS.length; i++) {
+            int row = i;
+            float bx = contentX;
+            float by = topY - row * (btnH + buttonGap);
+            consoleBtnX[i] = bx;
+            consoleBtnY[i] = by;
+            consoleBtnW[i] = btnW;
+            consoleBtnH[i] = btnH;
+        }
+    }
+
+    private int getConsoleButtonAt(float x, float y) {
+        for (int i = 0; i < CONSOLE_COMMANDS.length; i++) {
+            if (isInRect(x, y, consoleBtnX[i], consoleBtnY[i], consoleBtnW[i], consoleBtnH[i])) {
+                return i;
+            }
+        }
+        return -1;
     }
 
 
@@ -2425,8 +2514,10 @@ public class GameScreen implements Screen {
             int flippedY = Gdx.graphics.getHeight() - screenY;
 
             if (consoleOpen && button == Input.Buttons.LEFT) {
-                if (isInConsoleInputArea(screenX, flippedY, Gdx.graphics.getWidth(), Gdx.graphics.getHeight())) {
-                    consoleInputActive = true;
+                updateConsoleButtonLayout(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+                int consoleBtn = getConsoleButtonAt(screenX, flippedY);
+                if (consoleBtn >= 0) {
+                    handleConsoleCommand(CONSOLE_COMMANDS[consoleBtn]);
                     return true;
                 }
                 consoleInputActive = false;
